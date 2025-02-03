@@ -155,6 +155,34 @@ static ImVec2   InputTextCalcTextSize(ImGuiContext* ctx, const char* text_begin,
 // - BulletTextV()
 //-------------------------------------------------------------------------
 
+constexpr size_t arrow_len = sizeof("> ") - 1;
+
+static const char* GetArrowStr(bool hovered)
+{
+    return (hovered) ? "> " : "  ";
+}
+
+static ImVec2 GetArrowBox(bool hovered =true)
+{
+    const char* arrow = GetArrowStr(hovered);
+    return ImGui::CalcTextSize(arrow, arrow + arrow_len);
+}
+
+static ImVec2 GetArrowBox(const char* str)
+{
+    return ImGui::CalcTextSize(str, str + arrow_len);
+}
+
+static void PutArrowOnScreenClipped(ImVec2& pos, ImVec2& start_pos, ImVec2& font_size, ImVec2* label_size, const ImGuiStyle& style, ImRect* bb, bool hovered)
+{
+    const char* arrow = GetArrowStr(hovered);
+    const ImVec2 arrow_pos = pos;
+    ImVec2 pos_max = ImVec2(start_pos.x, pos.y + font_size.y);
+    ImGui::RenderTextClipped(arrow_pos, pos_max, arrow, arrow + arrow_len, label_size, style.SelectableTextAlign, bb);
+    ImVec2 ArrowSz = GetArrowBox(hovered);
+    pos.x += ArrowSz.x;
+}
+
 void ImGui::TextEx(const char* text, const char* text_end, ImGuiTextFlags flags)
 {
     ImGuiWindow* window = GetCurrentWindow();
@@ -1153,7 +1181,7 @@ bool ImGui::Checkbox(const char* label, bool* v)
     const ImVec2 label_size = CalcTextSize(label, NULL, true);
 
     const float square_sz = GetFrameHeight();
-    const ImVec2 pos = window->DC.CursorPos;
+    ImVec2 pos = window->DC.CursorPos;
     const ImRect total_bb(pos, pos + ImVec2(square_sz + (label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f), label_size.y + style.FramePadding.y * 2.0f));
     ItemSize(total_bb, style.FramePadding.y);
     const bool is_visible = ItemAdd(total_bb, id);
@@ -1186,6 +1214,7 @@ bool ImGui::Checkbox(const char* label, bool* v)
         MarkItemEdited(id);
     }
 
+    /*
     const ImRect check_bb(pos, pos + ImVec2(square_sz, square_sz));
     const bool mixed_value = (g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0;
     if (is_visible)
@@ -1209,8 +1238,23 @@ bool ImGui::Checkbox(const char* label, bool* v)
     const ImVec2 label_pos = ImVec2(check_bb.Max.x + style.ItemInnerSpacing.x, check_bb.Min.y + style.FramePadding.y);
     if (g.LogEnabled)
         LogRenderedText(&label_pos, mixed_value ? "[~]" : *v ? "[x]" : "[ ]");
+    */
     if (is_visible && label_size.x > 0.0f)
-        RenderText(label_pos, label);
+    {
+        const char* str = GetArrowStr(hovered);
+        ImVec2 arr_pos = GetArrowBox(str);
+        RenderText(pos, str);
+        if (checked)
+        {
+            PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+        }
+        pos.x += arr_pos.x;
+        RenderText(pos, label);
+        if (checked)
+        {
+            PopStyleColor(1);
+        }
+    }
 
     IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags | ImGuiItemStatusFlags_Checkable | (*v ? ImGuiItemStatusFlags_Checked : 0));
     return pressed;
@@ -7062,7 +7106,7 @@ bool ImGui::Selectable(const char* label, bool selected, ImGuiSelectableFlags fl
     // Render
     if (is_visible)
     {
-        const bool highlighted = hovered || (flags & ImGuiSelectableFlags_Highlight);
+        /*
         if (highlighted || selected)
         {
             // Between 1.91.0 and 1.91.4 we made selected Selectable use an arbitrary lerp between _Header and _HeaderHovered. Removed that now. (#8106)
@@ -7076,6 +7120,7 @@ bool ImGui::Selectable(const char* label, bool selected, ImGuiSelectableFlags fl
                 nav_render_cursor_flags |= ImGuiNavRenderCursorFlags_AlwaysDraw; // Always show the nav rectangle
             RenderNavCursor(bb, id, nav_render_cursor_flags);
         }
+        */
     }
 
     if (span_all_columns)
@@ -7088,7 +7133,12 @@ bool ImGui::Selectable(const char* label, bool selected, ImGuiSelectableFlags fl
 
     // Text stays at the submission position. Alignment/clipping extents ignore SpanAllColumns.
     if (is_visible)
-        RenderTextClipped(pos, ImVec2(window->WorkRect.Max.x, pos.y + size.y), label, NULL, &label_size, style.SelectableTextAlign, &bb);
+    {
+        const bool highlighted = hovered || (flags & ImGuiSelectableFlags_Highlight);
+        const ImVec2 pos_max = ImVec2(window->WorkRect.Max.x, pos.y + size.y);
+        PutArrowOnScreenClipped(pos, window->WorkRect.Max, size, &label_size, style, &bb, (highlighted || selected));
+        RenderTextClipped(pos, pos_max, label, NULL, &label_size, style.SelectableTextAlign, &bb);
+    }
 
     // Automatically close popups
     if (pressed && (window->Flags & ImGuiWindowFlags_Popup) && !(flags & ImGuiSelectableFlags_NoAutoClosePopups) && (g.LastItemData.ItemFlags & ImGuiItemFlags_AutoClosePopups))
