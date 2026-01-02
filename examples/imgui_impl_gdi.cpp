@@ -576,6 +576,7 @@ bool ImGui_ImplGDI_Init()
 
 void ImGui_ImplGDI_Shutdown()
 {
+    old_fb_width = old_fb_height = 0;
     imgui_sw::unbind_imgui_painting();
 }
 
