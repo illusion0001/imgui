@@ -439,7 +439,7 @@ namespace imgui_sw
         const ImDrawCmd& pcmd,
         Stats* stats)
     {
-        const auto texture = reinterpret_cast<const Texture*>(pcmd.TextureId);
+        const auto texture = reinterpret_cast<const Texture*>(pcmd.TexRef._TexID);
         assert(texture);
 
         // ImGui uses the first pixel for "white".
@@ -531,7 +531,7 @@ namespace imgui_sw
     void unbind_imgui_painting()
     {
         ImGuiIO& io = ImGui::GetIO();
-        delete reinterpret_cast<Texture*>(io.Fonts->TexID);
+        delete reinterpret_cast<Texture*>(io.Fonts->TexRef.GetTexID());
         io.Fonts = nullptr;
     }
 
@@ -599,7 +599,8 @@ void ImGui_ImplGDI_RenderDrawData(ImDrawData* draw_data)
     {
         // Get the handle of the current window.
         ImGuiIO& io = ImGui::GetIO();
-        HWND hWnd = reinterpret_cast<HWND>(io.ImeWindowHandle);
+        ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+        HWND hWnd = reinterpret_cast<HWND>(main_viewport->PlatformHandleRaw);
 
         if (g_hDC)
         {

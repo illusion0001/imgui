@@ -1,8 +1,9 @@
 // dear imgui - standalone example application for DirectX 11
 // If you are new to dear imgui, see examples/README.txt and documentation at the top of imgui.cpp.
+// For Win32 GDI, remember to enable `IMGUI_USE_BGRA_PACKED_COLOR` for correct widget colors!
 
 #include "imgui.h"
-#include "imgui_impl_win32.h"
+#include "../backends/imgui_impl_win32.h"
 #include "imgui_impl_gdi.h"
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
